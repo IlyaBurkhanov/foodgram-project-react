@@ -1,20 +1,20 @@
 from django.contrib.auth import get_user_model
-from rest_framework import filters, mixins, status, viewsets
 from django.shortcuts import get_object_or_404
-from rest_framework.response import Response
+from django_filters.rest_framework import DjangoFilterBackend
+from rest_framework import filters, mixins, status, viewsets
 from rest_framework.decorators import action
 from rest_framework.permissions import AllowAny, IsAuthenticated
-from django_filters.rest_framework import DjangoFilterBackend
-from .filters import CustomFilter
-from .models import Tags, Ingredients, Recipes, Follow
-from .paginations import MyPagination
-from .serializers import (UserSerializer, PasswordSerializer, TagSerializer,
-                          IngredientSerializer, RecipesSerializer,
-                          ShoppingCartSerializer, FavoritesCartSerializer,
-                          SubscriptionsSerializer)
-from .permissions import UserPermissions, RecipesPermission
-from .services import get_shoping_cart
+from rest_framework.response import Response
 
+from .filters import CustomFilter
+from .models import Follow, Ingredients, Recipes, Tags
+from .paginations import MyPagination
+from .permissions import RecipesPermission, UserPermissions
+from .serializers import (FavoritesCartSerializer, IngredientSerializer,
+                          PasswordSerializer, RecipesSerializer,
+                          ShoppingCartSerializer, SubscriptionsSerializer,
+                          TagSerializer, UserSerializer)
+from .services import get_shoping_cart
 
 User = get_user_model()
 

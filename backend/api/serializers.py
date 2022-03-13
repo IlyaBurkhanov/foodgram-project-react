@@ -2,8 +2,8 @@ from django.contrib.auth import get_user_model
 from drf_base64.fields import Base64ImageField
 from rest_framework import serializers, status
 
-from .models import (Tags, Ingredients, Recipes, IngredientCount, Follow,
-                     Favorites, ShoppingCart)
+from .models import (Favorites, Follow, IngredientCount, Ingredients, Recipes,
+                     ShoppingCart, Tags)
 
 User = get_user_model()
 User._meta.get_field('email')._unique = True
