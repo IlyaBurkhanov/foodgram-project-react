@@ -11,7 +11,7 @@ class TagsAdmin(admin.ModelAdmin):
 
 @admin.register(Ingredients)
 class IngredientsAdmin(admin.ModelAdmin):
-    list_display = ('name', 'measurement_unit',)
+    list_display = ('id', 'name', 'measurement_unit',)
     list_filter = ('measurement_unit',)
     search_fields = ('name',)
     filter = ('name',)
@@ -32,4 +32,5 @@ class RecipesAdmin(admin.ModelAdmin):
 
     def favorites(self, rec):
         return Favorites.objects.filter(recipe=rec.id).count()
+
     favorites.short_description = 'В избранном'

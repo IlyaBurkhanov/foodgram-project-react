@@ -1,4 +1,5 @@
 from django.contrib.auth import get_user_model
+from django.core.validators import MinValueValidator
 from django.db import models
 
 User = get_user_model()
@@ -22,8 +23,6 @@ class Ingredients(models.Model):
     name = models.CharField(max_length=200, verbose_name='Ингредиент')
     measurement_unit = models.CharField(max_length=200,
                                         verbose_name='Мера измерения')
-    # need_for_recipes = models.ManyToManyField('Recipes',
-    #                                           through='IngredientCount')
 
     def __str__(self):
         return self.name
@@ -34,8 +33,10 @@ class Ingredients(models.Model):
 
 
 class IngredientCount(models.Model):
-    ingredient = models.ForeignKey(Ingredients, on_delete=models.PROTECT)
-    recipe = models.ForeignKey('Recipes', on_delete=models.CASCADE)
+    ingredient = models.ForeignKey(Ingredients,
+                                   on_delete=models.PROTECT)
+    recipe = models.ForeignKey('Recipes',
+                               on_delete=models.CASCADE)
     count = models.FloatField()
 
 
@@ -56,8 +57,9 @@ class Recipes(models.Model):
         through_fields=('recipe', 'ingredient')
         )
     tag = models.ManyToManyField(Tags, related_name='tag',
-                                 verbose_name='Тэг')
+                                 verbose_name='Тэг', blank=True)
     cooking_time = models.SmallIntegerField(
+        validators=[MinValueValidator(1)],
         verbose_name='Время приготовления')
     pub_date = models.DateTimeField(
         verbose_name='Дата публикации',
@@ -83,13 +85,41 @@ class Follow(models.Model):
         on_delete=models.CASCADE,
         related_name='following')
 
+    class Meta:
+        unique_together = (
+            ('user', 'author',)
+        )
+
 
 class Favorites(models.Model):
     user = models.ForeignKey(
         User,
         on_delete=models.CASCADE,
-        related_name='user')
+        related_name='user_favorite')
     recipe = models.ForeignKey(
         Recipes,
         on_delete=models.CASCADE,
-        related_name='recipe')
+        related_name='recipe_favorite')
+
+    class Meta:
+        unique_together = (
+            ('user', 'recipe',)
+        )
+
+
+class ShoppingCart(models.Model):
+    user = models.ForeignKey(
+        User,
+        on_delete=models.CASCADE,
+        related_name='user_shop'
+    )
+    recipe = models.ForeignKey(
+        Recipes,
+        on_delete=models.CASCADE,
+        related_name='recipe_shop'
+    )
+
+    class Meta:
+        unique_together = (
+            ('user', 'recipe',)
+        )
