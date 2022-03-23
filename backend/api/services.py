@@ -3,12 +3,12 @@ import csv
 from django.db.models import Sum
 from django.http import HttpResponse
 
-from api.models import ShoppingCart
+from recipes.models import ShoppingCart
 
 
 def get_shoping_cart(user):
     """only for python >= 3.7!!!!"""
-    response = HttpResponse(content_type='text/csv')
+    response = HttpResponse(content_type='text/csv; charset=windows-1251')
     response['Content-Disposition'] = 'attachment; filename="buy.csv"'
 
     writer = csv.writer(response, delimiter=';')

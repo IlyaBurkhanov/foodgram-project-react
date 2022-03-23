@@ -3,7 +3,8 @@ from rest_framework import permissions
 
 class UserPermissions(permissions.BasePermission):
     def has_permission(self, request, view):
-        return request.user.is_authenticated or view.action != 'retrieve'
+        return request.user.is_authenticated or view.action in [
+            'retrieve', 'create', 'list']
 
 
 class RecipesPermission(permissions.BasePermission):

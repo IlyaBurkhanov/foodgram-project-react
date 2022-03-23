@@ -7,13 +7,14 @@ from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 
 from .filters import CustomFilter
-from .models import Follow, Ingredients, Recipes, Tags
+from recipes.models import Follow, Ingredients, Recipes, Tags
 from .paginations import MyPagination
 from .permissions import RecipesPermission, UserPermissions
-from .serializers import (FavoritesCartSerializer, IngredientSerializer,
-                          PasswordSerializer, RecipesSerializer,
-                          ShoppingCartSerializer, SubscriptionsSerializer,
-                          TagSerializer, UserSerializer)
+from .serializers import (FollowSerizlizer, FavoritesCartSerializer,
+                          IngredientSerializer, PasswordSerializer,
+                          RecipesSerializer, ShoppingCartSerializer,
+                          SubscriptionsSerializer, TagSerializer,
+                          UserSerializer)
 from .services import get_shoping_cart
 
 User = get_user_model()
@@ -23,12 +24,13 @@ class UserViewSet(viewsets.ModelViewSet):
     queryset = User.objects.all().order_by('id')
     serializer_class = UserSerializer
     permission_classes = (UserPermissions,)
-    lookup_field = 'user_id'
+    lookup_field = 'id'
     pagination_class = MyPagination
 
-    def retrieve(self, request, user_id):
-        user_idx = self.request.user.id if user_id == 'me' else user_id
-        user = get_object_or_404(User, id=user_idx)
+    @action(detail=False, methods=['GET'],
+            permission_classes=[IsAuthenticated])
+    def me(self, request):
+        user = get_object_or_404(User, username=self.request.user)
         serializer = UserSerializer(user, context={'request': request})
         return Response(serializer.data, status=status.HTTP_200_OK)
 
@@ -37,17 +39,14 @@ class UserViewSet(viewsets.ModelViewSet):
     def set_password(self, request):
         user = request.user
         serializer = PasswordSerializer(data=request.data)
-
-        if serializer.is_valid():
-            if not user.check_password(
-                    serializer.data.get('current_password')):
-                return Response({'current_password': 'Wrong password'},
-                                status=status.HTTP_400_BAD_REQUEST)
-            user.set_password(serializer.data.get('new_password'))
-            user.save()
-            return Response({'status': 'success'},
-                            status=status.HTTP_202_ACCEPTED)
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        serializer.is_valid(raise_exception=True)
+        if not user.check_password(serializer.data.get('current_password')):
+            return Response({'current_password': 'Ошибка пароля'},
+                            status=status.HTTP_400_BAD_REQUEST)
+        user.set_password(serializer.data.get('new_password'))
+        user.save()
+        return Response({'status': 'success'},
+                        status=status.HTTP_202_ACCEPTED)
 
     @action(detail=False, methods=['GET'],
             permission_classes=[IsAuthenticated])
@@ -59,21 +58,18 @@ class UserViewSet(viewsets.ModelViewSet):
         return self.get_paginated_response(serializer.data)
 
     @action(detail=True, methods=['POST', 'DELETE'])
-    def subscribe(self, request, user_id):
-        if request.user.id == int(user_id):
-            return Response({'detail': 'Подписка на себя не осуществляется'},
-                            status=status.HTTP_400_BAD_REQUEST)
-        author = Follow.objects.filter(author__id=user_id)
+    def subscribe(self, request, id):
+        serializer = FollowSerizlizer(data={'author_id': id},
+                                      context={'request': request})
+        serializer.is_valid(raise_exception=True)
+
         if request.method.upper() == 'DELETE':
-            follower = get_object_or_404(author, user=request.user)
+            follower = get_object_or_404(
+                Follow.objects.filter(author__id=id), user=request.user)
             follower.delete()
             return Response(status=status.HTTP_204_NO_CONTENT)
-        if author.filter(user=request.user).exists():
-            return Response(
-                {'detail': f'Вы уже подписаны на автора'},
-                status=status.HTTP_400_BAD_REQUEST
-            )
-        new_author = Follow.objects.create(author_id=user_id,
+
+        new_author = Follow.objects.create(author_id=id,
                                            user=request.user)
         new_author.save()
         serializer = SubscriptionsSerializer(new_author,
@@ -109,20 +105,20 @@ class RecipesViewSet(viewsets.ModelViewSet):
     def filter_queryset(self, queryset):
         mapping_follow = {'is_favorited': 'recipe_favorite__user',
                           'is_in_shopping_cart': 'recipe_shop__user'}
-        if self.request.user.is_authenticated:
-            filter_list = []
-            for use_filter, use_attr in mapping_follow.items():
-                filter_query = self.request.query_params.get(use_filter)
-                if filter_query is not None and filter_query[0].isdigit():
-                    filter_list.append([use_attr, int(filter_query[0])])
-            for filter_use in filter_list:
-                queryset = getattr(
-                    queryset, 'filter' if filter_use[1]
-                    else 'exclude')(**{filter_use[0]: self.request.user})
-        queryset = DjangoFilterBackend().filter_queryset(self.request,
-                                                         queryset,
-                                                         view=self)
-        return queryset
+        if not self.request.user.is_authenticated:
+            return queryset
+        filter_list = []
+        for use_filter, use_attr in mapping_follow.items():
+            filter_query = self.request.query_params.get(use_filter)
+            if filter_query is not None and filter_query[0].isdigit():
+                filter_list.append([use_attr, int(filter_query[0])])
+        for filter_use in filter_list:
+            queryset = getattr(
+                queryset, 'filter' if filter_use[1]
+                else 'exclude')(**{filter_use[0]: self.request.user})
+        return DjangoFilterBackend().filter_queryset(self.request,
+                                                     queryset,
+                                                     view=self)
 
     def favorite_shopping_method(self, request, pk, use_serializer,
                                  field, error):

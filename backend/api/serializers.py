@@ -2,8 +2,8 @@ from django.contrib.auth import get_user_model
 from drf_base64.fields import Base64ImageField
 from rest_framework import serializers, status
 
-from .models import (Favorites, Follow, IngredientCount, Ingredients, Recipes,
-                     ShoppingCart, Tags)
+from recipes.models import (Favorites, Follow, IngredientCount, Ingredients,
+                            Recipes, ShoppingCart, Tags)
 
 User = get_user_model()
 User._meta.get_field('email')._unique = True
@@ -21,6 +21,8 @@ class UserSerializer(serializers.ModelSerializer):
                                                       read_only=True)
 
     def create(self, validated_data):
+        # Если убрать этот метод, то пароли в базе будут храниться
+        # в незашифрованом виде
         user = User.objects.create_user(**validated_data)
         return user
 
@@ -65,6 +67,7 @@ class IngredientRecipesSerializer(serializers.ModelSerializer):
     name = serializers.ReadOnlyField(source='ingredient.name')
     measurement_unit = serializers.ReadOnlyField(
         source='ingredient.measurement_unit')
+    # Float, так как можеть быть пол чашки молока или треть чайной ложки
     amount = serializers.FloatField(source='count', required=True)
     recipe = serializers.PrimaryKeyRelatedField(queryset=Recipes.objects.all(),
                                                 write_only=True)
@@ -98,7 +101,7 @@ class RecipesSerializer(serializers.ModelSerializer):
         :return: ingredients list
         """
         ingredients = self.initial_data.pop('ingredients', [])
-        if not ingredients or method == 'create':
+        if not ingredients and method == 'create':
             raise serializers.ValidationError(
                 {'ingredients': 'Обязательное поле.'},
                 code=status.HTTP_400_BAD_REQUEST
@@ -213,7 +216,7 @@ class SubscriptionsSerializer(UserSerializer, serializers.ModelSerializer):
     def get_recipes(self, obj):
         recipes_limit = self.context['request'].query_params.get(
             'recipes_limit')
-        recipes = obj.author.author_recipe.values()
+        recipes = obj.author.author_recipe.all()
         if recipes_limit and recipes_limit.isdigit():
             recipes = recipes[:int(recipes_limit)]
         return RecipesSerializerBase(recipes, many=True, read_only=True).data
@@ -222,3 +225,28 @@ class SubscriptionsSerializer(UserSerializer, serializers.ModelSerializer):
         model = Follow
         fields = ('email', 'id', 'username', 'first_name', 'last_name',
                   'is_subscribed', 'recipes', 'recipes_count')
+
+
+class FollowSerizlizer(serializers.ModelSerializer):
+    author_id = serializers.PrimaryKeyRelatedField(
+        source='author', write_only=True, queryset=User.objects.all())
+
+    def validate(self, data):
+        author_id = data['author'].id
+        if self.context['request'].user.id == author_id:
+            raise serializers.ValidationError(
+                {'detail': 'Подписка на себя не осуществляется'},
+                code=status.HTTP_400_BAD_REQUEST)
+
+        if (self.context['request'].method.upper() == 'POST'
+                and Follow.objects.filter(
+                    author_id=author_id,
+                    user=self.context['request'].user).exists()):
+            raise serializers.ValidationError(
+                {'detail': f'Вы уже подписаны на автора'},
+                code=status.HTTP_400_BAD_REQUEST)
+        return author_id
+
+    class Meta:
+        model = Follow
+        fields = ('author_id',)
