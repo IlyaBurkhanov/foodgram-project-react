@@ -1,8 +1,3 @@
-# praktikum_new_diplom
-Пока готова только первая часть - бэкенд. Без докеров и связи с фронтом. Позже добью.
-
-Бэкенд в папке backend
-
 ## Шаги
 0. pip install -r requirements.txt
 
@@ -12,7 +7,17 @@
 
 3. python manage.py createsuperuser   (для админки)
 
-4. python manage.py load_ingredients --path ingredients.csv   (загрузка ингредиетов)
+4. python manage.py load_ingredients --path data/ingredients.csv   (загрузка ингредиетов)
 
 
-Дальше можно тестировать
+## Сервер:
+
+- http://51.250.22.7/
+
+админ: http://51.250.22.7/admin/ :: user: ilya / password: 123 /email: ilya@ilya.ru / 
+
+Тестовые юзеры:
+ilya2@ilya.ru
+ilya3@ilya.ru
+
+пароль для всех 123
