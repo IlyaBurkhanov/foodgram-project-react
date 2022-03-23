@@ -41,6 +41,7 @@ jobs:
             sudo systemctl stop nginx
             sudo docker-compose stop
             sudo docker-compose rm backend
+            sudo docker pull ${{ secrets.DOCKER_USERNAME }}/yandex_diplom:latest
             sudo rm .env
             touch .env
             echo DB_ENGINE=${{ secrets.DB_ENGINE }} >> .env
