@@ -1,6 +1,7 @@
 from django.contrib.auth import get_user_model
 from django.core.validators import MinValueValidator
 from django.db import models
+from django.db.models import CheckConstraint, Q
 
 User = get_user_model()
 
@@ -37,7 +38,11 @@ class IngredientCount(models.Model):
                                    on_delete=models.PROTECT)
     recipe = models.ForeignKey('Recipes',
                                on_delete=models.CASCADE)
-    count = models.FloatField()
+    count = models.FloatField(validators=[MinValueValidator(0.1)])
+
+    class Meta:
+        constraints = [CheckConstraint(check=Q(count__gte=0.1),
+                                       name='count_min')]
 
 
 class Recipes(models.Model):
@@ -86,9 +91,9 @@ class Follow(models.Model):
         related_name='following')
 
     class Meta:
-        unique_together = (
-            ('user', 'author',)
-        )
+        constraints = [models.UniqueConstraint(
+            fields=['user', 'author'],
+            name='uniq_follow')]
 
 
 class Favorites(models.Model):
@@ -102,9 +107,9 @@ class Favorites(models.Model):
         related_name='recipe_favorite')
 
     class Meta:
-        unique_together = (
-            ('user', 'recipe',)
-        )
+        constraints = [models.UniqueConstraint(
+            fields=['user', 'recipe'],
+            name='uniq_favorites')]
 
 
 class ShoppingCart(models.Model):
@@ -120,6 +125,6 @@ class ShoppingCart(models.Model):
     )
 
     class Meta:
-        unique_together = (
-            ('user', 'recipe',)
-        )
+        constraints = [models.UniqueConstraint(
+            fields=['user', 'recipe'],
+            name='uniq_shopping')]

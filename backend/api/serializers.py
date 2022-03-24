@@ -21,8 +21,6 @@ class UserSerializer(serializers.ModelSerializer):
                                                       read_only=True)
 
     def create(self, validated_data):
-        # Если убрать этот метод, то пароли в базе будут храниться
-        # в незашифрованом виде
         user = User.objects.create_user(**validated_data)
         return user
 
@@ -67,10 +65,15 @@ class IngredientRecipesSerializer(serializers.ModelSerializer):
     name = serializers.ReadOnlyField(source='ingredient.name')
     measurement_unit = serializers.ReadOnlyField(
         source='ingredient.measurement_unit')
-    # Float, так как можеть быть пол чашки молока или треть чайной ложки
-    amount = serializers.FloatField(source='count', required=True)
+    amount = serializers.FloatField(source='count',
+                                    required=True)
     recipe = serializers.PrimaryKeyRelatedField(queryset=Recipes.objects.all(),
                                                 write_only=True)
+
+    def validate(self, ingredient):
+        if ingredient['count'] < 0:
+            ingredient['count'] = abs(ingredient['count'])
+        return ingredient
 
     class Meta:
         model = IngredientCount

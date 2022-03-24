@@ -105,8 +105,6 @@ class RecipesViewSet(viewsets.ModelViewSet):
     def filter_queryset(self, queryset):
         mapping_follow = {'is_favorited': 'recipe_favorite__user',
                           'is_in_shopping_cart': 'recipe_shop__user'}
-        if not self.request.user.is_authenticated:
-            return queryset
         filter_list = []
         for use_filter, use_attr in mapping_follow.items():
             filter_query = self.request.query_params.get(use_filter)
