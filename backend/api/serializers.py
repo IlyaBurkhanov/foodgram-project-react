@@ -66,14 +66,10 @@ class IngredientRecipesSerializer(serializers.ModelSerializer):
     measurement_unit = serializers.ReadOnlyField(
         source='ingredient.measurement_unit')
     amount = serializers.FloatField(source='count',
+                                    min_value=0,
                                     required=True)
     recipe = serializers.PrimaryKeyRelatedField(queryset=Recipes.objects.all(),
                                                 write_only=True)
-
-    def validate(self, ingredient):
-        if ingredient['count'] < 0:
-            ingredient['count'] = abs(ingredient['count'])
-        return ingredient
 
     class Meta:
         model = IngredientCount
@@ -132,9 +128,9 @@ class RecipesSerializer(serializers.ModelSerializer):
     def add_ingredients(ingredients, recipe_id):
         for ingredient in ingredients:
             ingredient.update({'recipe': recipe_id})
-        ingredient_serializer = IngredientRecipesSerializer(data=ingredients,
-                                                            many=True)
-        if ingredient_serializer.is_valid(raise_exception=True):
+            ingredient_serializer = IngredientRecipesSerializer(
+                data=ingredient)
+            ingredient_serializer.is_valid(raise_exception=True)
             ingredient_serializer.save()
 
     def create(self, validated_data):
