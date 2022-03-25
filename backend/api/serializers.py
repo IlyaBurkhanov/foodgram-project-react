@@ -65,11 +65,18 @@ class IngredientRecipesSerializer(serializers.ModelSerializer):
     name = serializers.ReadOnlyField(source='ingredient.name')
     measurement_unit = serializers.ReadOnlyField(
         source='ingredient.measurement_unit')
-    amount = serializers.FloatField(source='count',
-                                    min_value=0,
-                                    required=True)
+    amount = serializers.FloatField(
+        source='count',
+        required=True)
     recipe = serializers.PrimaryKeyRelatedField(queryset=Recipes.objects.all(),
                                                 write_only=True)
+
+    def validate_amount(self, amount):
+        if amount <= 0:
+            raise serializers.ValidationError(
+                'Количество ингредиентов не может быть меньше 0',
+                code=status.HTTP_400_BAD_REQUEST)
+        return amount
 
     class Meta:
         model = IngredientCount
