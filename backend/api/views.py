@@ -113,9 +113,10 @@ class RecipesViewSet(viewsets.ModelViewSet):
         for filter_use in filter_list:
             queryset = getattr(
                 queryset, 'filter' if filter_use[1]
-                else 'exclude')(**{filter_use[0]: self.request.user})
+                else 'exclude')(
+                **{filter_use[0]: self.request.user})
         return DjangoFilterBackend().filter_queryset(self.request,
-                                                     queryset,
+                                                     queryset.distinct(),
                                                      view=self)
 
     def favorite_shopping_method(self, request, pk, use_serializer,
